@@ -101,8 +101,30 @@ ALLOWED_PLATFORMS = {
 TOLERANCE = 0.01
 
 # Functions
+
+# Validate that the data frame contains all the required columns, raise an error if there are missing columns
+def validate_schema(df: pd.DataFrame, required_columns: set) -> None:
+    missing_columns = required_columns - set(df.columns)
+
+    if missing_columns:
+        raise ValueError(
+            f"Schema validation failed. Missing required columns: {missing_columns}"
+        )
+
+def convert_date(df: pd.DataFrame) -> pd.DataFrame:
+    try:
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerse")
+    except Exception as e:
+        raise ValueError(f"Date conversion failed with error: {e}")
+    
+    if df["Date"].isna().any():
+        raise ValueError("Data conversion failed: invalid or missing date values found.")
+    
+    return df
+
+
 load_raw_data(path)
-validate_schema(df, required_columns)
+
 convert_date(df)
 validate_dtypes(df)
 validate_allowed_values(df, column, allowed_values)
