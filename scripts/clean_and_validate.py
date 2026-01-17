@@ -111,6 +111,8 @@ def validate_schema(df: pd.DataFrame, required_columns: set) -> None:
             f"Schema validation failed. Missing required columns: {missing_columns}"
         )
 
+# Convert data type into datetime in Date column. 
+# Exit with error if conversion fails.
 def convert_date(df: pd.DataFrame) -> pd.DataFrame:
     try:
         df["Date"] = pd.to_datetime(df["Date"], errors="coerse")
@@ -122,10 +124,39 @@ def convert_date(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+# Validate that all columns have the expected data types after conversion of Date column. 
+# Exit with an error if any column has an unexpected data type.
 
+def validate_dtypes(df: pd.DataFrame) -> None:
+    expected_dtypes = {
+        "Date": "datetime64[ns]", 
+        "Product Name": "object", 
+        "Category": "object", 
+        "Units Sold": "int64", 
+        "Price": "float64", 
+        "Revenue": "float64", 
+        "Discount": "float64", 
+        "Units Returned": "int64", 
+        "Location": "object", 
+        "Platform": "object"
+    }
+
+    mismatches = {}
+
+    for col, expected in expected_dtypes.items():
+        if col not in df.columns:
+            continue
+
+        actual = str(df[col].dtype)
+        if actual != expected:
+            mismatches[col] = {"expected": expected, "actual": actual}
+    
+    if mismatches:
+        raise ValueError(f"Dtype validation failed: {mismatches}")
+    
 load_raw_data(path)
 
-convert_date(df)
+
 validate_dtypes(df)
 validate_allowed_values(df, column, allowed_values)
 validate_sold_units(df)
