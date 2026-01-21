@@ -153,16 +153,128 @@ def validate_dtypes(df: pd.DataFrame) -> None:
     
     if mismatches:
         raise ValueError(f"Dtype validation failed: {mismatches}")
+
+# Validate that each value in each column belong to the list of allowed values. If not, raise an error.
+def validate_allowed_values(
+        df: pd.DataFrame,
+        column: str,
+        allowed_values: set,
+        *,
+        allow_null: bool = False,
+        normalize: bool = True
+) -> None:
+    if column not in df.columns:
+        raise ValueError(f"Allowed values validation failed: column '{column}' not found.")
     
-load_raw_data(path)
+    series = df[column]
+
+    #Normalize strings, trim whitespace
+    if normalize and od.api.types.is_object_dtype(series):
+        series = series.astype("string").str.strip()
+
+    # Treat empty strings as missing
+    empty_as_na = series.isna()
+    if pd.api.types.is_string_dtype(series):
+        empty_as_na = empty_as_na | (series == "")
+
+    if not allow_null:
+        if empty_as_na.amy():
+            bad_rows = df.loc[empty_as_na, [column]].head(10)
+            raise ValueError(
+                f"Allowed values validation failed for '{column}':" 
+                f"missing/blank values found. Examples: \n{bad_rows.to_string(index = True)}"
+            ) 
+        
+    # Validate only non-missing values
+    to_check = series[~empty_as_na] if allow_null else series
+
+    invalid_mask = ~to_check.isin(allowed_values)
+    if invalid_mask.any():
+        invalid_values = sorted(set(to_check[invalid_mask].astype(str).unique()))
+        examples = df.loc[to_check.index[invalid_mask], [colum]].head(10)
+
+        raise ValueError(
+            f"Allowed values validation failed for '{column}'."
+            f"Invalid values: {invalid_values}."
+            f"Example rows:\n{examples.to_string(index=True)}"
+        )
+
+# Validating Units Sold column, checking missing values, all values are integers and non-negative
+def validate_sold_units(df: pd.DataFrame) -> None:
+
+    coumn = "Units Sold"
+
+    if column not in df.columns:
+        raise ValueError(f"Units Sold validation failed: column'{column}' is missing")
+    
+    if df[column].isna().any():
+        raise ValueError("Units Sold validation failed: missing value found")
+    
+    if not (df[column] % 1 == 0).all():
+        raise ValueError("Units Sold validation failed: non-integer values found.")
+    
+    if (df[column] < 0).any():
+        raise ValueError("Units Sold validation failed: negative values found.")
+    
+# Validating Units Returned column, the column must exist, the values non-negative integers, and do not surpass Units Sold
+def validate_units_returned(df: pd.DataFrame) -> None:
+
+    column = "Units Returned"
+    sold_column = "Units Sold"
+
+    if column not in df.columns:
+        raise ValueError(f"Units Returned validation failed: column '{column}' is missing.")
+    
+    if sold_column not in df.columns:
+        raise ValueError(f"Units Returned validation failed: required column '{sold_column}' is missing.")
+    
+    if df[column].isna().any():
+        raise ValueError("Units Returned validation failed: missing values found.")
+    
+    if not (df[column] % 1 == 0).all():
+        raise ValueError("Units Returned validation failed: non-integer values found.")
+    
+    if (df[column] < 0).any():
+        raise ValueError("Units Returned validation failed: negative values found.")
+    
+    if (df[column] > df[sold_column]).any():
+        raise ValueError("Units Returned validation failed: returned units exceed sold units.")
+
+# Validating Price column, column must exist, no missing values, values numeric and positive
+def validate_price(df: pd.DataFrame) -> None:
+
+    column = "Price"
+
+    if column not in df.columns:
+        raise ValueError(f"Price validation failed: column '{column}' is missing.")
+    
+    if df[column].isna().any():
+        raise ValueError("Price validation failed: missing values found.")
+    
+    if not pd.api.types.is_numeric_dtype(df[column]):
+        raise ValueError("Price validation failed: non-numeric values found.")
+    
+    if (df[column] <= 0).any():
+        raise ValueError("Price validation failed: zero or negative values found.")
+    
+# Validating Discount column, column must exist, values numeric, non-negative, and between 0 and 1 inclusive
+def validate_discount(df: pd.DataFrame) -> None:
+
+    column = "Discount"
+
+    if column not in df.columns:
+        raise ValueError(f"Discount column validation failed: column '{column}' is missing.")
+    
+    if df[column].isna().any():
+        raise ValueError("Discount column validation failed: missing values found.")
+    
+    if not pd.api.types.is_numeric_dtype(df[column]):
+        raise ValueError("Discount validation failed: non-numeric values found.")
+    
+    if ((df[column] < 0) | (df[column] > 1)).any():
+        raise ValueError("Discount column validation failed: values outside range 0... 1 found.")
 
 
-validate_dtypes(df)
-validate_allowed_values(df, column, allowed_values)
-validate_sold_units(df)
-validate_units_returned(df)
-validate_price(df)
-validate_discount(df)
 validate_revenue(df, tolerance)
 drop_temporary_columns(df)
 validate_missing_required(df, required_columns)
