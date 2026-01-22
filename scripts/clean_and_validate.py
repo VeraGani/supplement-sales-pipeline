@@ -274,8 +274,28 @@ def validate_discount(df: pd.DataFrame) -> None:
     if ((df[column] < 0) | (df[column] > 1)).any():
         raise ValueError("Discount column validation failed: values outside range 0... 1 found.")
 
+# Validating Reveinue column by checlking that each row match at least one of 3 possible formulas for calculating revenue within the given tolerance.
+def validate_revenue(df: pd.DataFrame, tolerance: float) -> None:
+    required_columns = {"Revenue", "Units Sold", "Price", "Discount"}
+    missing = required_columns - set(df.columns)
+    if missing:
+        raise ValueError(f"Revenue validation failed: missing required columns {missing}")
+    
+    revenue_f1 = df["Units Sold"] * df["price"]
+    revenue_f2 = df["Units Sold"] * df["Price"] * (1 - df["Discount"])
+    revenue_f3 = df["Units Sold"] * df["Price"] * df["Discount"]
 
-validate_revenue(df, tolerance)
+    match_f1 = np.isclose(df["Revenue"], revenue_f1, atol=tolerance)
+    match_f2 = np.isclose(df["Revenue"], revenue_f2, atol=tolerance)
+    match_f3 = np.isclose(df["Revenue"], revenue_f3, atol=tolerance)
+
+    valid_rows = match_f1 | match_f2 | match_f3
+
+    if not valid_rows.all():
+        failed_count = (~valid_rows).sum()
+        raise ValueError(f"Revenue validation failed: {failed_count} rows do not match any valid formula")
+    
+
 drop_temporary_columns(df)
 validate_missing_required(df, required_columns)
 write_clean_csv(df, out_path)
