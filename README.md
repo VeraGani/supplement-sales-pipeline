@@ -3,7 +3,7 @@ This repo contains raw and cleaned up dataset. File exploration and cleaning wer
 The raw dataset Supplements weekly sales from Kaggle 
 https://www.kaggle.com/datasets/zahidmughal2343/supplement-sales-data .
 
-Workflow:
+** Workflow:
 Extracting raw CSV data
 Cleaning and transforming data with Pandas:
 - Converted the Date column to datetime format
@@ -26,17 +26,17 @@ Revenue = Units Sold × Price
 
 The cleaned data is stored as csv file in data/cleaned folder. 
 
-Reproduction preparation:
+** Reproduction preparation:
 - prerequisites: Python version 3.9+, pandas, numpy
 - raw csv file is stored at data/raw
 - ipynb file is stored at notebooks folder
 - the cleaned csv file is at data/cleaned
 
-Execution orrder:
-1. Open -1_data_cleaning.ipynb and run it top to bottom
+** Execution orrder:
+1. Open 1_data_cleaning.ipynb and run it top to bottom
 2. As a result of the run a new csv file will be produced. This is the file with the cleaned data. The successful run will prove that the validation passed. 
 
-Tools used:
+**Tools used:
 - Python
 - Pandas
 - Jupyter Notebook
@@ -46,7 +46,7 @@ Current status:
 
 This project currently includes data exploration, validation, and cleaning.
 
-Planned improvements:
+** Planned improvements:
 - Refactor notebook logic into a Python script
 - Add automated validation checks
 - Load cleaned data into a SQL database
