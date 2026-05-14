@@ -3,7 +3,7 @@ This repo contains raw and cleaned up dataset. File exploration and cleaning wer
 The raw dataset Supplements weekly sales from Kaggle 
 https://www.kaggle.com/datasets/zahidmughal2343/supplement-sales-data .
 
-##Workflow:
+## Workflow:
 Extracting raw CSV data
 Cleaning and transforming data with Pandas:
 - Converted the Date column to datetime format
