@@ -4,13 +4,25 @@ The raw dataset Supplements weekly sales from Kaggle
 https://www.kaggle.com/datasets/zahidmughal2343/supplement-sales-data .
 
 Workflow:
-- Extracting raw CSV data
-- Cleaning and transformiung data with Pandas: 
-a) validated the date range
-b) checked columns Product Name, Category for inconsistency, similar names, spelling errors
-c) inspected columns Units Sols, Units Returned, Price, and Discount to find out min, max values, and negative and zero 
-d) created 3 new columns with the Revenue values calculated with three different formulas. The newly columns were created to compare to the values in the original Revenue column to find out what formula was used to calculate the original Revenue. First column: Units Sold x Price; second column: Units Sold x Price x (1-Discount); third column: Units Sold x Price x Discount. For programmatic validation of the results of the comparison 3 new columns were created: Comparison_1, Comparison_2, Comparison_3. As a result, formula #1 (Units Sold x Price) was used in calculation of the original Revenue. Later all the columns used for formula validation are dropped.
-e) columns Location & Platform were inspected. In each column there are 3 unique values (USA, Canada, UK, and iHerb, Amazon, Walmart respectively). The distribution is logical and even. There are no misspeling, trailings, excessive spaces in the strings. 
+Extracting raw CSV data
+Cleaning and transforming data with Pandas:
+- Converted the Date column to datetime format
+- Validated the date range
+- Checked Product Name, Category, Location, and Platform for spelling issues, extra spaces, and inconsistent values
+- Inspected Units Sold, Units Returned, Price, Revenue, and Discount for missing, zero, negative, minimum, and maximum values
+- Validated the Revenue formula by comparing three possible calculations
+- Removed temporary validation columns after confirming the formula
+
+Revenue validation:
+
+Three possible formulas were tested:
+1. Units Sold × Price
+2. Units Sold × Price × (1 - Discount)
+3. Units Sold × Price × Discount
+
+The validation showed that the original Revenue column was calculated as:
+
+Revenue = Units Sold × Price
 
 The cleaned data is stored as csv file in data/cleaned folder. 
 
@@ -29,3 +41,14 @@ Tools used:
 - Pandas
 - Jupyter Notebook
 - VS Code
+
+Current status:
+
+This project currently includes data exploration, validation, and cleaning.
+
+Planned improvements:
+- Refactor notebook logic into a Python script
+- Add automated validation checks
+- Load cleaned data into a SQL database
+- Add SQL queries for sales and return analysis
+- Prepare the project for a cloud-based data pipeline
