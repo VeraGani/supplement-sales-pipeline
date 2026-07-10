@@ -1,3 +1,5 @@
+Project status - In progress
+
 This repo contains raw and cleaned up dataset. File exploration and cleaning were performed with Python.
 
 The raw dataset Supplements weekly sales from Kaggle 
@@ -32,7 +34,7 @@ The cleaned data is stored as csv file in data/cleaned folder.
 - ipynb file is stored at notebooks folder
 - the cleaned csv file is at data/cleaned
 
-## Execution orrder:
+## Execution order:
 1. Open 1_data_cleaning.ipynb and run it top to bottom
 2. As a result of the run a new csv file will be produced. This is the file with the cleaned data. The successful run will prove that the validation passed. 
 
