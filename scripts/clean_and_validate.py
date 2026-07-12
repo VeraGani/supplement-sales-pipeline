@@ -115,7 +115,7 @@ def validate_schema(df: pd.DataFrame, required_columns: set) -> None:
 # Exit with error if conversion fails.
 def convert_date(df: pd.DataFrame) -> pd.DataFrame:
     try:
-        df["Date"] = pd.to_datetime(df["Date"], errors="coerse")
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     except Exception as e:
         raise ValueError(f"Date conversion failed with error: {e}")
     
@@ -128,28 +128,28 @@ def convert_date(df: pd.DataFrame) -> pd.DataFrame:
 # Exit with an error if any column has an unexpected data type.
 
 def validate_dtypes(df: pd.DataFrame) -> None:
-    expected_dtypes = {
-        "Date": "datetime64[ns]", 
-        "Product Name": "object", 
-        "Category": "object", 
-        "Units Sold": "int64", 
-        "Price": "float64", 
-        "Revenue": "float64", 
-        "Discount": "float64", 
-        "Units Returned": "int64", 
-        "Location": "object", 
-        "Platform": "object"
-    }
 
     mismatches = {}
 
-    for col, expected in expected_dtypes.items():
-        if col not in df.columns:
-            continue
+    if not pd.api.types.is_datetime64_any_dtype(df["Date"]):
+        mismatches["Date"] = str(df["Date"].dtype)
 
-        actual = str(df[col].dtype)
-        if actual != expected:
-            mismatches[col] = {"expected": expected, "actual": actual}
+        string_columns = [
+            "Product Name",
+            "Category",
+            "Location",
+            "Platform"
+        ]
+
+        for column in string_columns:
+            if not pd.api.types.is_string_dtype(df[column]):
+                mismatches[column] = str(df[column],dtype)
+
+        float_columns = ["price", "Revenue", "Discount"]
+
+        for column in float_columns:
+            if not pd.api.types.is_float_dtype(df[column]):
+                mismatches[column] = str(df[column].dtype)
     
     if mismatches:
         raise ValueError(f"Dtype validation failed: {mismatches}")
@@ -169,7 +169,7 @@ def validate_allowed_values(
     series = df[column]
 
     #Normalize strings, trim whitespace
-    if normalize and od.api.types.is_object_dtype(series):
+    if normalize and pd.api.types.is_object_dtype(series):
         series = series.astype("string").str.strip()
 
     # Treat empty strings as missing
@@ -178,7 +178,7 @@ def validate_allowed_values(
         empty_as_na = empty_as_na | (series == "")
 
     if not allow_null:
-        if empty_as_na.amy():
+        if empty_as_na.any():
             bad_rows = df.loc[empty_as_na, [column]].head(10)
             raise ValueError(
                 f"Allowed values validation failed for '{column}':" 
@@ -191,7 +191,7 @@ def validate_allowed_values(
     invalid_mask = ~to_check.isin(allowed_values)
     if invalid_mask.any():
         invalid_values = sorted(set(to_check[invalid_mask].astype(str).unique()))
-        examples = df.loc[to_check.index[invalid_mask], [colum]].head(10)
+        examples = df.loc[to_check.index[invalid_mask], [column]].head(10)
 
         raise ValueError(
             f"Allowed values validation failed for '{column}'."
@@ -202,7 +202,7 @@ def validate_allowed_values(
 # Validating Units Sold column, checking missing values, all values are integers and non-negative
 def validate_sold_units(df: pd.DataFrame) -> None:
 
-    coumn = "Units Sold"
+    column = "Units Sold"
 
     if column not in df.columns:
         raise ValueError(f"Units Sold validation failed: column'{column}' is missing")
@@ -281,7 +281,7 @@ def validate_revenue(df: pd.DataFrame, tolerance: float) -> None:
     if missing:
         raise ValueError(f"Revenue validation failed: missing required columns {missing}")
     
-    revenue_f1 = df["Units Sold"] * df["price"]
+    revenue_f1 = df["Units Sold"] * df["Price"]
     revenue_f2 = df["Units Sold"] * df["Price"] * (1 - df["Discount"])
     revenue_f3 = df["Units Sold"] * df["Price"] * df["Discount"]
 
@@ -296,10 +296,54 @@ def validate_revenue(df: pd.DataFrame, tolerance: float) -> None:
         raise ValueError(f"Revenue validation failed: {failed_count} rows do not match any valid formula")
     
 
-drop_temporary_columns(df)
-validate_missing_required(df, required_columns)
-write_clean_csv(df, out_path)
 
-main()
+def validate_missing_required(df:pd.DataFrame, required_columns: set) -> None:
+    missing_values = df[list(required_columns)].isna().sum()
+    columns_with_missing_values = missing_values[missing_values > 0]
 
-if _name_ == "_main_": main()
+    if not columns_with_missing_values.empty:
+        raise ValueError(
+            f"Missing value validation faile."
+            f"Missing values found:\n{columns_with_missing_values}"
+        )
+
+def write_clean_csv(df: pd.DataFrame, out_path: Path) -> None:
+    out_path.parent.mkdir(
+        parents = True, 
+        exist_ok = True
+    )
+
+    df.to_csv(out_path, index = False)
+
+def main() -> None:
+    df = pd.read_csv(RAW_PATH)
+
+    validate_schema(df, REQUIRED_COLUMNS)
+
+    df = convert_date(df)
+
+    validate_dtypes(df)
+
+    validate_allowed_values(df, 'Category', ALLOWED_CATEGORIES)
+
+    validate_sold_units(df)
+
+    validate_units_returned(df)
+
+    validate_price(df)
+
+    validate_discount(df)
+
+    validate_revenue(df, TOLERANCE)
+
+    validate_allowed_values(df, "Location", ALLOWED_LOCATIONS)
+
+    validate_allowed_values(df, "Platform", ALLOWED_PLATFORMS)
+
+    validate_missing_required(df, REQUIRED_COLUMNS)
+
+    write_clean_csv(df, CLEAN_PATH)
+
+    print(f"Validation passed. Cleaned file saved to {CLEAN_PATH}")
+
+if __name__ == "__main__": main()
